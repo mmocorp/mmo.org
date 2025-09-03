@@ -311,12 +311,44 @@ a {
 </div>
 
 <script>
-// ---- Async generateReply with Wikipedia + Google auto-open ----
+// ---- Chatbot Toggle ----
+const chatbot = document.getElementById("chatbot");
+const chatbotBtn = document.getElementById("chatbotButton");
+chatbotBtn.addEventListener("click", ()=>{ 
+  chatbot.style.display = chatbot.style.display==="none" ? "block" : "none"; 
+});
+document.getElementById("chatHeader").addEventListener("click", ()=>{ chatbot.style.display="none"; });
+
+// ---- Chatbot Logic ----
+const chatBox = document.getElementById("chatBox");
+const input = document.getElementById("chatInput");
+const sendBtn = document.getElementById("sendBtn");
+let memory = [];
+
+function pushMessage(sender,text){
+  const msg = {sender,text};
+  memory.push(msg);
+  renderChat();
+}
+
+function renderChat(){
+  chatBox.innerHTML = "";
+  memory.forEach(m=>{
+    const div = document.createElement("div");
+    div.className = "msg " + m.sender;
+    // Make links clickable
+    div.innerHTML = m.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+    chatBox.appendChild(div);
+  });
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// ---- Async generateReply with Wikipedia + Auto-Google fallback ----
 async function generateReply(text){
     const userQuery = text.trim();
     if(!userQuery) return "Please say something!";
 
-    // 1️⃣ Simple hardcoded responses
+    // 1️⃣ Hardcoded responses
     const lower = userQuery.toLowerCase();
     if(lower.includes("hi") || lower.includes("hello")) return "Hello! 👋";
     if(lower.includes("how are you")) return "I'm just code, but I'm doing great!";
@@ -328,10 +360,10 @@ async function generateReply(text){
         const response = await fetch(wikiURL);
         const data = await response.json();
 
-        if(data.extract) return data.extract; // Found something on Wikipedia
+        if(data.extract) return data.extract; // Wikipedia result found
         else {
             const googleURL = `https://www.google.com/search?q=${encodeURIComponent(userQuery)}`;
-            window.open(googleURL, "_blank"); // Auto-open Google search in new tab
+            window.open(googleURL, "_blank"); // Auto-open Google
             return `I couldn't find info on Wikipedia. I opened Google for you! 🔍`;
         }
     } catch (err) {
@@ -341,7 +373,7 @@ async function generateReply(text){
     }
 }
 
-// ---- Updated sendMessage to handle async ----
+// ---- Send message handler ----
 async function sendMessage(){
     const txt = input.value.trim();
     if(!txt) return;
@@ -351,8 +383,13 @@ async function sendMessage(){
     pushMessage("bot", reply);
 }
 
+// ---- Event listeners ----
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keypress", e=>{if(e.key==="Enter"){sendMessage();}});
 </script>
+
 
 </body>
 </html>
+
 
