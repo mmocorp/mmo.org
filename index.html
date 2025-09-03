@@ -311,56 +311,48 @@ a {
 </div>
 
 <script>
-// ---- Chatbot Toggle ----
-const chatbot = document.getElementById("chatbot");
-const chatbotBtn = document.getElementById("chatbotButton");
-chatbotBtn.addEventListener("click", ()=>{ 
-  chatbot.style.display = chatbot.style.display==="none" ? "block" : "none"; 
-});
-document.getElementById("chatHeader").addEventListener("click", ()=>{ chatbot.style.display="none"; });
+// ---- Async generateReply with Wikipedia + Google auto-open ----
+async function generateReply(text){
+    const userQuery = text.trim();
+    if(!userQuery) return "Please say something!";
 
-// ---- Chatbot Logic ----
-const chatBox = document.getElementById("chatBox");
-const input = document.getElementById("chatInput");
-const sendBtn = document.getElementById("sendBtn");
-let memory = [];
+    // 1️⃣ Simple hardcoded responses
+    const lower = userQuery.toLowerCase();
+    if(lower.includes("hi") || lower.includes("hello")) return "Hello! 👋";
+    if(lower.includes("how are you")) return "I'm just code, but I'm doing great!";
+    if(lower.includes("joke")) return "Why do programmers prefer dark mode? Because light attracts bugs! 🐞";
 
-function pushMessage(sender,text){
-  const msg = {sender,text};
-  memory.push(msg);
-  renderChat();
+    // 2️⃣ Try Wikipedia API
+    try {
+        const wikiURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(userQuery)}`;
+        const response = await fetch(wikiURL);
+        const data = await response.json();
+
+        if(data.extract) return data.extract; // Found something on Wikipedia
+        else {
+            const googleURL = `https://www.google.com/search?q=${encodeURIComponent(userQuery)}`;
+            window.open(googleURL, "_blank"); // Auto-open Google search in new tab
+            return `I couldn't find info on Wikipedia. I opened Google for you! 🔍`;
+        }
+    } catch (err) {
+        const googleURL = `https://www.google.com/search?q=${encodeURIComponent(userQuery)}`;
+        window.open(googleURL, "_blank");
+        return `Something went wrong 😅. I opened Google for you! 🔍`;
+    }
 }
 
-function renderChat(){
-  chatBox.innerHTML = "";
-  memory.forEach(m=>{
-    const div = document.createElement("div");
-    div.className = "msg " + m.sender;
-    div.textContent = m.text;
-    chatBox.appendChild(div);
-  });
-  chatBox.scrollTop = chatBox.scrollHeight;
+// ---- Updated sendMessage to handle async ----
+async function sendMessage(){
+    const txt = input.value.trim();
+    if(!txt) return;
+    pushMessage("user", txt);
+    input.value = "";
+    const reply = await generateReply(txt);
+    pushMessage("bot", reply);
 }
 
-function generateReply(text){
-  text = text.toLowerCase();
-  if(text.includes("hi") || text.includes("hello")) return "Hello! 👋";
-  if(text.includes("how are you")) return "I'm just code, but I'm doing great!";
-  if(text.includes("joke")) return "Why do programmers prefer dark mode? Because light attracts bugs! 🐞";
-  return "You said: " + text;
-}
-
-function sendMessage(){
-  const txt = input.value.trim();
-  if(!txt) return;
-  pushMessage("user", txt);
-  input.value = "";
-  setTimeout(()=>{ pushMessage("bot", generateReply(txt)); }, 500);
-}
-
-sendBtn.addEventListener("click", sendMessage);
-input.addEventListener("keypress", e=>{if(e.key==="Enter"){sendMessage();}});
 </script>
 
 </body>
 </html>
+
