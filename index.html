@@ -1,11 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>M.M.O. — Animated Website + Chatbot</title>
-<style>/* ----- General ----- */
+<style>
+/* ----- General ----- */
 * {
   margin: 0;
   padding: 0;
@@ -18,6 +18,7 @@ body {
   color: white;
   line-height: 1.6;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 nav {
@@ -49,13 +50,11 @@ header {
   justify-content: center;
   align-items: center;
   text-align: center;
-
-  /* Background image fix */
   background-image: url(https://images.pexels.com/photos/2653362/pexels-photo-2653362.jpeg?cs=srgb&dl=pexels-harold-vasquez-853421-2653362.jpg&fm=jpg);
-  background-size: cover;       /* makes it fill */
-  background-position: center;  /* centered */
-  background-repeat: no-repeat; /* no repeat */
-  background-attachment: fixed; /* parallax effect */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 header h1 {
@@ -70,7 +69,7 @@ header p {
 }
 
 section {
-  padding: 80px 20px;
+  padding: 120px 20px; /* increased padding for vertical length */
   text-align: center;
 }
 
@@ -218,31 +217,16 @@ h2 {
 
 /* ----- Animations ----- */
 @keyframes fadeInDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(-30px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-a {
-  color: #ffffff;
-}
-
+a { color: #ffffff; }
 </style>
 </head>
 <body>
@@ -253,6 +237,7 @@ a {
   <a href="#services">Services</a>
   <a href="#work">Our Work</a>
   <a href="#gallery">Gallery</a>
+  <a href="#contact">Contact</a>
 </nav>
 
 <!-- Hero -->
@@ -297,6 +282,19 @@ a {
   </div>
 </section>
 
+<!-- Contact Us -->
+<section id="contact">
+  <h2>Contact Us</h2>
+  <p>Have a project in mind? Reach out to us!</p>
+  <form id="contactForm">
+    <input type="text" name="user_name" placeholder="Your Name" required style="padding:10px;margin:5px;width:90%;">
+    <input type="email" name="user_email" placeholder="Your Email" required style="padding:10px;margin:5px;width:90%;">
+    <textarea name="message" placeholder="Your Message" required style="padding:10px;margin:5px;width:90%;height:120px;"></textarea>
+    <button type="submit" style="padding:10px 20px;margin-top:10px;background:#38bdf8;color:#000;border:none;border-radius:5px;cursor:pointer;">Send</button>
+  </form>
+  <p id="statusMsg" style="margin-top:10px;"></p>
+</section>
+
 <!-- Chatbot minimized button -->
 <div id="chatbotButton">🤖 Chat</div>
 
@@ -310,7 +308,11 @@ a {
   </div>
 </div>
 
+<!-- Scripts -->
+<script src="https://cdn.emailjs.com/sdk/3.2.0/email.min.js"></script>
 <script>
+emailjs.init("YOUR_USER_ID"); // Replace with your EmailJS user ID
+
 // ---- Chatbot Toggle ----
 const chatbot = document.getElementById("chatbot");
 const chatbotBtn = document.getElementById("chatbotButton");
@@ -336,60 +338,47 @@ function renderChat(){
   memory.forEach(m=>{
     const div = document.createElement("div");
     div.className = "msg " + m.sender;
-    // Make links clickable
-    div.innerHTML = m.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+    div.textContent = m.text;
     chatBox.appendChild(div);
   });
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ---- Async generateReply with Wikipedia + Auto-Google fallback ----
-async function generateReply(text){
-    const userQuery = text.trim();
-    if(!userQuery) return "Please say something!";
-
-    // 1️⃣ Hardcoded responses
-    const lower = userQuery.toLowerCase();
-    if(lower.includes("hi") || lower.includes("hello")) return "Hello! 👋";
-    if(lower.includes("how are you")) return "I'm just code, but I'm doing great!";
-    if(lower.includes("joke")) return "Why do programmers prefer dark mode? Because light attracts bugs! 🐞";
-
-    // 2️⃣ Try Wikipedia API
-    try {
-        const wikiURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(userQuery)}`;
-        const response = await fetch(wikiURL);
-        const data = await response.json();
-
-        if(data.extract) return data.extract; // Wikipedia result found
-        else {
-            const googleURL = `https://www.google.com/search?q=${encodeURIComponent(userQuery)}`;
-            window.open(googleURL, "_blank"); // Auto-open Google
-            return `I couldn't find info on Wikipedia. I opened Google for you! 🔍`;
-        }
-    } catch (err) {
-        const googleURL = `https://www.google.com/search?q=${encodeURIComponent(userQuery)}`;
-        window.open(googleURL, "_blank");
-        return `Something went wrong 😅. I opened Google for you! 🔍`;
-    }
+function generateReply(text){
+  text = text.toLowerCase();
+  if(text.includes("hi") || text.includes("hello")) return "Hello! 👋";
+  if(text.includes("how are you")) return "I'm just code, but I'm doing great!";
+  if(text.includes("joke")) return "Why do programmers prefer dark mode? Because light attracts bugs! 🐞";
+  return "You said: " + text;
 }
 
-// ---- Send message handler ----
-async function sendMessage(){
-    const txt = input.value.trim();
-    if(!txt) return;
-    pushMessage("user", txt);
-    input.value = "";
-    const reply = await generateReply(txt);
-    pushMessage("bot", reply);
+function sendMessage(){
+  const txt = input.value.trim();
+  if(!txt) return;
+  pushMessage("user", txt);
+  input.value = "";
+  setTimeout(()=>{ pushMessage("bot", generateReply(txt)); }, 500);
 }
 
-// ---- Event listeners ----
 sendBtn.addEventListener("click", sendMessage);
 input.addEventListener("keypress", e=>{if(e.key==="Enter"){sendMessage();}});
-</script>
 
+// ---- Contact Form ----
+const contactForm = document.getElementById("contactForm");
+const statusMsg = document.getElementById("statusMsg");
+
+contactForm.addEventListener("submit", function(e){
+  e.preventDefault();
+  emailjs.sendForm("YOUR_SERVICE_ID","YOUR_TEMPLATE_ID", this)
+    .then(() => {
+      statusMsg.textContent = "Message sent successfully! ✅";
+      contactForm.reset();
+    }, (err) => {
+      statusMsg.textContent = "Failed to send message. ❌";
+      console.error(err);
+    });
+});
+</script>
 
 </body>
 </html>
-
-
